@@ -34,16 +34,6 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
       else:
         v_cur = value[symbol_index, frame_index - 1]
 
-
-      # Extra: v_prev_symbol
-      # regular/initial state of a phone
-      if symbol_index >= 2 and symbol_index % 2 == 0:
-        v_prev_symbol = value[symbol_index - 2, frame_index - 1]
-      # epsilon state
-      else:
-        v_prev_symbol = max_neg_val
-
-
       # Corner cases at the start
       if symbol_index == 0:
         # score of the 1st row is 0, meaning that
@@ -57,9 +47,22 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
       else:
         v_prev_state = value[symbol_index-1, frame_index-1]
 
+
+      # Extra: v_prev_symbol
+      # regular/initial state of a phone
+      if symbol_index >= 2: # and symbol_index % 2 == 0:
+        v_prev_symbol = value[symbol_index - 2, frame_index - 1]
+      # epsilon state
+      else:
+        v_prev_symbol = max_neg_val
+
+
       # value after transition
       max_ = max(v_cur, v_prev_state)
-      value[symbol_index, frame_index] = max(max_, v_prev_symbol) + value[symbol_index, frame_index]
+      if symbol_index >= 2:
+        value[symbol_index, frame_index] = value[symbol_index, frame_index] + max(max_, v_prev_symbol)
+      else:
+        value[symbol_index, frame_index] = value[symbol_index, frame_index] + max_
 
 
   # backtracking (indicator matrix)
@@ -76,13 +79,13 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
         unit_step = value[index - 1, frame_index - 1]
 
         max_ = max(stay, unit_step)
-        if (index >= 2) and (index % 2 == 0):
+        if (index >= 2):  # and (index % 2 == 0):
           skip_eps_transition = value[index - 2, frame_index - 1]
           max_val = max(max_, skip_eps_transition)
           if skip_eps_transition == max_val:
             index = index - 2
           else:
-            if unit_step == max_val:
+            if unit_step == max_:
               index = index - 1
         else:
           if unit_step == max_:
