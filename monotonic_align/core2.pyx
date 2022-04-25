@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from cython.parallel import prange
+# from libc.stdio cimport printf
 
 
 @cython.boundscheck(False)
@@ -9,6 +10,8 @@ from cython.parallel import prange
 cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols, int n_frames, float max_neg_val) nogil:
   cdef int x
   cdef int y
+
+  cdef int yy
 
   cdef float v_prev_symbol
   cdef float v_prev_state
@@ -19,10 +22,12 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
   cdef int frame_index
   cdef int symbol_index
   cdef float stay = 0.0
-  cdef float eps_transition = 0.0
-  cdef float symbol_transition = 0.0
+  cdef float unit_step = 0.0
+  cdef float skip_eps_transition = 0.0
   cdef float max_ = 0.0
   cdef float max_val = 0.0
+
+  cdef int last_frame_index = n_frames - 1
 
   # dynamic programming
   for frame_index in range(n_frames):
@@ -36,12 +41,11 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
 
 
       # Extra: v_prev_symbol
+      # regular/initial state of a phone
       if symbol_index >= 2 and symbol_index % 2 == 0:
-        # if symbol_index % 2 == 0:  # regular/initial state of a phone
         v_prev_symbol = value[symbol_index - 2, frame_index - 1]
-      else:  # epsilon state
-          # v_prev_symbol = value[symbol_index - 2, frame_index - 1]
-        # else:
+      # epsilon state
+      else:
         v_prev_symbol = max_neg_val
 
 
@@ -62,35 +66,51 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
       max_ = max(v_cur, v_prev_state)
       value[symbol_index, frame_index] = max(max_, v_prev_symbol) + value[symbol_index, frame_index]
 
-  # backtracking (indicator matrix)
-  for frame_index in range(n_frames - 1, -1, 1):
-    path[index, frame_index] = 1
-    if index != 0:
-      # must transition due to monotonic constraint
-      if index == frame_index:
+
+  # # backtracking (indicator matrix)
+  # for yy in range(last_frame_index, -1, 1):
+  #   path[index, yy] = 1
+  #   if index > 2:
+
+
+
+  # BUG: THE TRANSITION IS WEIRD! ONLY THE symbol_index % 2 == 0 should have esp-trans
+
+  yy = last_frame_index
+  while index > 2:
+    path[index, yy] = 1
+
+    # must transition due to monotonic constraint
+    if index == yy:
+      index = index - 1
+
+    # transition priority: phone > epi > stay
+    stay = value[index, yy - 1]
+    unit_step = value[index - 1, yy - 1]
+    skip_eps_transition = value[index - 2, yy - 1]
+
+    max_ = max(stay, unit_step)
+    max_val = max(max_, skip_eps_transition)
+    if (skip_eps_transition == max_val) and (index % 2 == 0):
+      index = index - 2
+    else:
+      if unit_step == max_val:
         index = index - 1
-
-      # transition priority: phone > epi > stay
-      stay = value[index, frame_index - 1]
-      eps_transition = value[index - 1, frame_index - 1]
-      symbol_transition = value[index - 2, frame_index - 1]
-
-      max_ = max(stay, eps_transition)
-      max_val = max(max_, symbol_transition)
-      if symbol_transition == max_val:
-        index = index - 2
       else:
-        if eps_transition == max_val:
-          index = index - 1
-        else:
-          if stay == max_val:
-            index = index - 1
-          else:
-            index = index - 0
+        # if stay == max_val:
+        #   index = index - 1
+        # else:
+        #   index = index - 0
+        index = index - 0
+        # index -= 2
 
-  # backtracking (for the rest of the 2xT matrix)
-  # for y in range(t_y - 1, -1, -1):
-  for y in range(1, -1, -1):
+
+    yy = yy -1
+  # else:
+  #   break
+
+  # FIXME
+  for y in range(yy, -1, -1):
     path[index, y] = 1
     if index != 0 and (index == y or value[index, y-1] < value[index-1, y-1]):
       index = index - 1
