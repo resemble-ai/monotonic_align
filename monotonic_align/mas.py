@@ -44,7 +44,7 @@ def maximum_path(value, mask=None):
   mask: [b, t_x, t_y]
   """
   if mask is None:
-    mask = torch.zeros_like(value)
+    mask = torch.ones_like(value)
 
   value = value * mask
   device = value.device
@@ -64,7 +64,7 @@ def maximum_path2(value, mask=None):
   mask: [b, t_x, t_y]
   """
   if mask is None:
-    mask = torch.zeros_like(value)
+    mask = torch.ones_like(value)
 
   value = value * mask
   device = value.device
