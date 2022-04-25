@@ -90,19 +90,23 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
     skip_eps_transition = value[index - 2, yy - 1]
 
     max_ = max(stay, unit_step)
-    max_val = max(max_, skip_eps_transition)
-    if (skip_eps_transition == max_val) and (index % 2 == 0):
-      index = index - 2
-    else:
-      if unit_step == max_val:
-        index = index - 1
+    if index % 2 == 0:
+      max_val = max(max_, skip_eps_transition)
+      if skip_eps_transition == max_val:
+        index = index - 2
       else:
-        # if stay == max_val:
-        #   index = index - 1
-        # else:
-        #   index = index - 0
-        index = index - 0
-        # index -= 2
+        if unit_step == max_val:
+          index = index - 1
+    else:
+      if unit_step == max_:
+        index = index - 1
+      # else:
+      #   # if stay == max_val:
+      #   #   index = index - 1
+      #   # else:
+      #   #   index = index - 0
+      #   index = index - 0
+      #   # index -= 2
 
 
     yy = yy -1
