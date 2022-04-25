@@ -4,6 +4,10 @@ cimport cython
 from cython.parallel import prange
 
 
+cdef float nrm2 = 1.0 # 2.0 ** 0.1  #np.sqrt(2.0)
+cdef float nrm5 = 1.0 # 5.0 ** 0.1  #np.sqrt(5.0)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols, int n_frames, float max_neg_val) nogil:
@@ -35,34 +39,60 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
         v_cur = value[symbol_index, frame_index - 1]
 
       # Corner cases at the start
-      if symbol_index == 0:
         # score of the 1st row is 0, meaning that
         # a valid path can start from any frame at the 1st symbol.
+        # score of all other symbols cannot be the start. (score = -inf)
+      # ordination cases
+      if symbol_index == 0:
         if frame_index == 0:
           v_prev_state = 0.
-        # score of all other symbols cannot be the start. (score = -inf)
         else:
           v_prev_state = max_neg_val
-      # ordination cases
       else:
         v_prev_state = value[symbol_index-1, frame_index-1]
 
 
       # Extra: v_prev_symbol
       # regular/initial state of a phone
+      # epsilon state
       if symbol_index >= 2: # and symbol_index % 2 == 0:
         v_prev_symbol = value[symbol_index - 2, frame_index - 1]
-      # epsilon state
       else:
         v_prev_symbol = max_neg_val
 
 
       # value after transition
-      max_ = max(v_cur, v_prev_state)
+      stay = v_cur + value[symbol_index, frame_index]
+      unit_step = v_prev_state + value[symbol_index, frame_index] / nrm2
+      max_ = max(stay, unit_step)
       if symbol_index >= 2:
-        value[symbol_index, frame_index] = value[symbol_index, frame_index] + max(max_, v_prev_symbol)
+        skip_eps_transition = v_prev_symbol + value[symbol_index, frame_index] / nrm5
+
+        if skip_eps_transition > max_:
+          value[symbol_index, frame_index] = skip_eps_transition
+        else:
+          if unit_step > stay:
+            value[symbol_index, frame_index] = unit_step
+          else:
+            value[symbol_index, frame_index] = stay
       else:
-        value[symbol_index, frame_index] = value[symbol_index, frame_index] + max_
+        if unit_step > stay:
+          value[symbol_index, frame_index] = unit_step
+        else:
+          value[symbol_index, frame_index] = stay
+
+
+      # if unit_step > stay:
+      #   value[symbol_index, frame_index] = unit_step
+      # else:
+      #   value[symbol_index, frame_index] = stay
+
+
+
+      #   value[symbol_index, frame_index] = value[symbol_index, frame_index] + max(max_, v_prev_symbol / nrm5)
+
+      # else:
+      #   value[symbol_index, frame_index] = value[symbol_index, frame_index] + max_
 
 
   # backtracking (indicator matrix)
@@ -78,9 +108,9 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
         stay = value[index, frame_index - 1]
         unit_step = value[index - 1, frame_index - 1]
 
-        max_ = max(stay, unit_step)
+        max_ = max(stay, unit_step) # / nrm2)
         if (index >= 2):  # and (index % 2 == 0):
-          skip_eps_transition = value[index - 2, frame_index - 1]
+          skip_eps_transition = value[index - 2, frame_index - 1] #/ nrm5
           max_val = max(max_, skip_eps_transition)
           if skip_eps_transition == max_val:
             index = index - 2
@@ -90,6 +120,10 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
         else:
           if unit_step == max_:
             index = index - 1
+
+        # if unit_step == max_:
+        #   index = index - 1
+
 
 
 @cython.boundscheck(False)
