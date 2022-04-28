@@ -30,57 +30,64 @@ cdef void maximum_path_each2(int[:,::1] path, float[:,::1] value, int n_symbols,
 
   # dynamic programming
   for frame_index in range(n_frames):
-    for symbol_index in range(max(0, n_symbols + frame_index - n_frames), min(n_symbols, frame_index + 1)):
-      # w/o an auxiliary matrix (one for accumulation and one for raw score value)
-      # the number of visited symbols must be < frame index
-      if symbol_index == frame_index:
-        v_cur = max_neg_val
-      else:
-        v_cur = value[symbol_index, frame_index - 1]
+    # for symbol_index in range(max(0, n_symbols + frame_index - n_frames), min(n_symbols, frame_index + 1)):
+    trail = frame_index - (n_frames - n_symbols)  # i >= trail: is valid
+    for symbol_index in range(n_symbols):
+      # Rule out the area below i - t > 0 and the area above i < t - (T - S)
+      if symbol_index <= frame_index and symbol_index >= trail:
 
-      # Corner cases at the start
-        # score of the 1st row is 0, meaning that
-        # a valid path can start from any frame at the 1st symbol.
-        # score of all other symbols cannot be the start. (score = -inf)
-      # ordination cases
-      if symbol_index == 0:
-        if frame_index == 0:
-          v_prev_state = 0.
+        # w/o an auxiliary matrix (one for accumulation and one for raw score value)
+        # the number of visited symbols must be < frame index
+        if symbol_index == frame_index:
+          v_cur = max_neg_val
         else:
-          v_prev_state = max_neg_val
-      else:
-        v_prev_state = value[symbol_index-1, frame_index-1]
+          v_cur = value[symbol_index, frame_index - 1]
+
+        # Corner cases at the start
+          # score of the 1st row is 0, meaning that
+          # a valid path can start from any frame at the 1st symbol.
+          # score of all other symbols cannot be the start. (score = -inf)
+        # ordination cases
+        if symbol_index == 0:
+          if frame_index == 0:
+            v_prev_state = 0.
+          else:
+            v_prev_state = max_neg_val
+        else:
+          v_prev_state = value[symbol_index-1, frame_index-1]
 
 
-      # Extra: v_prev_symbol
-      # regular/initial state of a phone
-      # epsilon state
-      if symbol_index >= 2: # and symbol_index % 2 == 0:
-        v_prev_symbol = value[symbol_index - 2, frame_index - 1]
-      else:
-        v_prev_symbol = max_neg_val
+        # Extra: v_prev_symbol
+        # regular/initial state of a phone
+        # epsilon state
+        if symbol_index >= 2: # and symbol_index % 2 == 0:
+          v_prev_symbol = value[symbol_index - 2, frame_index - 1]
+        else:
+          v_prev_symbol = max_neg_val
 
 
-      # value after transition
-      stay = v_cur + value[symbol_index, frame_index]
-      unit_step = v_prev_state + value[symbol_index, frame_index] / nrm2
-      max_ = max(stay, unit_step)
-      if symbol_index >= 2:
-        skip_eps_transition = v_prev_symbol + value[symbol_index, frame_index] / nrm5
+        # value after transition
+        stay = v_cur + value[symbol_index, frame_index]
+        unit_step = v_prev_state + value[symbol_index, frame_index] / nrm2
+        max_ = max(stay, unit_step)
+        if symbol_index >= 2:
+          skip_eps_transition = v_prev_symbol + value[symbol_index, frame_index] / nrm5
 
-        if skip_eps_transition > max_:
-          value[symbol_index, frame_index] = skip_eps_transition
+          if skip_eps_transition > max_:
+            value[symbol_index, frame_index] = skip_eps_transition
+          else:
+            if unit_step > stay:
+              value[symbol_index, frame_index] = unit_step
+            else:
+              value[symbol_index, frame_index] = stay
         else:
           if unit_step > stay:
             value[symbol_index, frame_index] = unit_step
           else:
             value[symbol_index, frame_index] = stay
-      else:
-        if unit_step > stay:
-          value[symbol_index, frame_index] = unit_step
-        else:
-          value[symbol_index, frame_index] = stay
 
+      else:
+        value[symbol_index, frame_index] = max_neg_val
 
       # if unit_step > stay:
       #   value[symbol_index, frame_index] = unit_step
