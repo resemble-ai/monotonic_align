@@ -4,11 +4,11 @@ from distutils.core import setup
 from Cython.Build import cythonize
 
 
-_VERSION = "1.2"
+_VERSION = "1.2b"
 
 
 ext_modules = cythonize(
-  ["monotonic_align/core.pyx", "monotonic_align/core2.pyx"],
+  ["monotonic_align/core.pyx", "monotonic_align/core2.pyx", "monotonic_align/core2eps.pyx"],
   # "monotonic_align/core.pyx",
   # "monotonic_align/core2.pyx",
   compiler_directives={"language_level": "3"},
