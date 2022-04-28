@@ -39,7 +39,12 @@ def mask_from_lens(
   return mask_ST.to(similarity)
 
 
-def maximum_path(value, mask=None, topology="1-step"):
+def maximum_path(
+  value,
+  mask=None,
+  topology="1-step",
+  output_scores=False,
+):
   """
   Cython optimised version of Monotonic Alignment Search
   Returns the most likely alignment for the given log-likelihood matrix.
@@ -87,4 +92,9 @@ def maximum_path(value, mask=None, topology="1-step"):
   else:
     raise ValueError(f"Unknown topology: {topology}")
 
-  return torch.from_numpy(path).to(device=device, dtype=dtype), value
+  path = torch.from_numpy(path).to(device=device, dtype=dtype)
+
+  if output_scores:
+    return path, value
+  else:  # for back-compatibility
+    return path
