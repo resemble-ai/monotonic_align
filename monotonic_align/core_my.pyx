@@ -1,5 +1,6 @@
-import numpy as np
-cimport numpy as np
+"""
+Adapted for readability from: [VITS](https://github.com/jaywalnut310/vits/blob/main/monotonic_align/core.pyx).
+"""
 cimport cython
 from cython.parallel import prange
 
@@ -9,68 +10,84 @@ from cython.parallel import prange
 cdef void maximum_path_each(
   int[:,::1] path,
   float[:,::1] value,
-  # float[:,::1] accumulation,
-  int t_x,
-  int t_y,
+  int n_symbols,
+  int n_frames,
   float max_neg_val
 ) nogil:
-  cdef int x
-  cdef int y
+  cdef int n
+  cdef int t
   cdef float v_prev
   cdef float v_cur
-  cdef float tmp
-  cdef int index = t_x - 1
-  cdef float gain = 0.0
 
-  # # initialize the first row
-  # for i in range(t_y):
-  #   accumulation[i, 0] = max_neg_val
-  # accumulation[0, 0] = 0
+  # Let the log-likelihood be stored in an NxT maxtrix, where
+  #   N is the number of symbols, and
+  #   T is the number of frames.
+  # We will loop over the row entries over a column
+  # and update the accumulated score into the matrix
+  # (in-place, to save space).
+  #   n: symbol index. n \in {0, 1, ..., N-1}
+  #   t: frame index.  t \in {0, 1, ..., T-1}
+  # Apply the transition rules to the entries except for two impassible areas:
+  #   1. below n - t > 0 ... left_boarder
+  #   2. above n < t - (T - N) ... right_boarder
+  for t in range(n_frames):
 
-  # for t in range(t_x):
-  #   accumulation[0, t + 1] = accumulation[0, t] + value[0, t]
-
-  # for i in range(0, t_y):  # symbol
-  #   for t in range(t_x):   # time
-  #     gain = value[i, t]
-  #     stay = accumulation[i, t] + gain
-  #     step = accumulation[i-1, t] + gain
-
-  # --------------
-  for y in range(t_y):
-    # for x in range(max(0, t_x + y - t_y), min(t_x, y + 1)):
-    lower = max(0, t_x + y - t_y)
-    higher = min(t_x, y + 1)
-    for x in range(t_x):
-      if lower <= x < higher:
-        if x == y:
+    right_boarder = t - (n_frames - n_symbols)
+    for n in range(n_symbols):
+      if n <= t and n >= right_boarder:
+        # determine the score of the current state at t - 1
+        if n == t:
           v_cur = max_neg_val
         else:
-          v_cur = value[x, y-1]
+          v_cur = value[n, t-1]
 
-
-        if x == 0:
-          if y == 0:
+        # determine the score of the previous state at t - 1
+        if n == 0:
+          if t == 0:
             v_prev = 0.
           else:
             v_prev = max_neg_val
         else:
-          v_prev = value[x-1, y-1]
+          v_prev = value[n-1, t-1]
 
-        value[x, y] = max(v_cur, v_prev) + value[x, y]
+        # update the accumulated score (in-place)
+        value[n, t] = max(v_cur, v_prev) + value[n, t]
 
       else:
-        value[x, y] = max_neg_val
+        value[n, t] = max_neg_val
 
-  for y in range(t_y - 1, -1, -1):
-    path[index, y] = 1
-    if index != 0 and (index == y or value[index, y-1] < value[index-1, y-1]):
-      index = index - 1
+  backtrack(path, value, n_symbols - 1, n_frames - 1)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void maximum_path_cmy(int[:,:,::1] paths, float[:,:,::1] values, int[::1] t_xs, int[::1] t_ys, float max_neg_val=-1e9) nogil:
+cdef void backtrack(
+  int[:, ::1] path,
+  float[:, ::1] value,
+  int n_last,
+  int t_last,
+) nogil:
+  # If `t` is declared as a `cdef` integer type,
+  # it will optimise this into a pure C loop.
+  cdef int t
+  for t in range(t_last, -1, -1):
+    path[n_last, t] = 1
+    if n_last != 0 and (
+      n_last == t or
+      value[n_last, t-1] < value[n_last-1, t-1]
+    ):
+      n_last = n_last - 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef void maximum_path_cmy(
+  int[:,:,::1] paths,
+  float[:,:,::1] values,
+  int[::1] t_xs,
+  int[::1] t_ys,
+  float max_neg_val=-1e9
+) nogil:
   cdef int b = values.shape[0]
 
   cdef int i

@@ -1,5 +1,6 @@
-import numpy as np
-cimport numpy as np
+"""
+Adapted from: https://github.com/jaywalnut310/vits/blob/main/monotonic_align/core.pyx
+"""
 cimport cython
 from cython.parallel import prange
 

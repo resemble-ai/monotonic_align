@@ -1,11 +1,8 @@
-import numpy as np
-cimport numpy as np
 cimport cython
 from cython.parallel import prange
+# import numpy as np
+# cimport numpy as np
 # from numpy.math cimport logaddexp
-
-# cdef float nrm2 = 1.0 # 2.0 ** 0.1  #np.sqrt(2.0)
-# cdef float nrm5 = 1.0 # 5.0 ** 0.1  #np.sqrt(5.0)
 
 
 @cython.boundscheck(False)
