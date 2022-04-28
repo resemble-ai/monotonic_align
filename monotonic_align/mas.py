@@ -4,6 +4,7 @@ import torch
 from monotonic_align.core import maximum_path_c
 from monotonic_align.core2 import maximum_path_c2
 from monotonic_align.core2eps import maximum_path_c2eps
+from monotonic_align.core_my import maximum_path_cmy
 
 
 def mask_from_len(lens: torch.Tensor, max_len=None):
@@ -50,7 +51,7 @@ def maximum_path(value, mask=None, topology="1-step"):
       for the given i-th prior mean and variance.
       (dtype=float, shape=[batch_size, text_length, latent_variable_length])
     mask: same shape as `value`
-    topology: "1-step", "2-skippable", "1-epsilon"
+    topology: "1-step", "2-step", "1-epsilon"
     .. math::
     value_{i,j} = log N(f(z)_{j}; \mu_{i}, \sigma_{i})
 
@@ -81,10 +82,13 @@ def maximum_path(value, mask=None, topology="1-step"):
   elif topology == "1-epsilon":
     maximum_path_c2eps(path, value, t_x_max, t_y_max)
 
+  elif topology == "1-step-my":
+    maximum_path_cmy(path, value, t_x_max, t_y_max)
+
   else:
     raise ValueError(f"Unknown topology: {topology}")
 
-  return torch.from_numpy(path).to(device=device, dtype=dtype) #, value  # FIXME DEBUG
+  return torch.from_numpy(path).to(device=device, dtype=dtype), value  # FIXME DEBUG
 
 
 # def maximum_path2(value, mask=None):
