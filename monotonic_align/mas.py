@@ -3,18 +3,19 @@ import torch
 from monotonic_align.core import maximum_path_c
 from monotonic_align.core2 import maximum_path_c2
 from monotonic_align.core2eps import maximum_path_c2eps
-from monotonic_align.core_my import maximum_path_cmy
+from monotonic_align.core1alt import maximum_path_c1alt
 
 
 def mask_from_len(lens: torch.Tensor, max_len=None):
     """
-    Make a `mask` from lens.
+    Make a `mask` from sequence lengths.
 
-    :param inputs: (B, T, D)
-    :param lens: (B)
+    Args:
+      inputs: (B, T, D)
+      lens: (B)
 
-    :return:
-        `mask`: (B, T)
+    Returns
+      mask: (B, T)
     """
     if max_len is None:
       max_len = lens.max()
@@ -28,9 +29,10 @@ def mask_from_lens(
   mel_lens: torch.Tensor,
 ):
   """
-  :param similarity: (B, S, T)
-  :param symbol_lens: (B,)
-  :param mel_lens: (B,)
+  Args:
+    similarity: (B, S, T)
+    symbol_lens: (B,)
+    mel_lens: (B,)
   """
   _, S, T = similarity.size()
   mask_S = mask_from_len(symbol_lens, S)
@@ -40,10 +42,10 @@ def mask_from_lens(
 
 
 def maximum_path(
-  value,
-  mask=None,
-  topology="1-step",
-  output_scores=False,
+  value: torch.Tensor,
+  mask: torch.Tensor=None,
+  topology: str="1-step",
+  output_scores: bool=False,
 ):
   """
   Cython optimised version of Monotonic Alignment Search
@@ -55,7 +57,11 @@ def maximum_path(
       for the given i-th prior mean and variance.
       (dtype=float, shape=[batch_size, text_length, latent_variable_length])
     mask: same shape as `value`
-    topology: "1-step", "2-step", "1-epsilon"
+    topology:
+      - 1-step: can only move 0/1 steps forward.
+      - 1-step-alt: same, but the accumulated value of impassible regions are set to -inf.
+      - 2-step: allow every symbol to be skipped
+      - 2-epsilon: allow every other symbol (indexed by an odd number) to be skipped
     .. math::
     value_{i,j} = log N(f(z)_{j}; \mu_{i}, \sigma_{i})
 
@@ -80,14 +86,14 @@ def maximum_path(
   if topology == "1-step":
     maximum_path_c(path, value, t_x_max, t_y_max)
 
+  elif topology == "1-step-alt":
+    maximum_path_cmy(path, value, t_x_max, t_y_max)
+
   elif topology == "2-step":
     maximum_path_c2(path, value, t_x_max, t_y_max)
 
-  elif topology == "1-epsilon":
+  elif topology == "2-epsilon":
     maximum_path_c2eps(path, value, t_x_max, t_y_max)
-
-  elif topology == "1-step-my":
-    maximum_path_cmy(path, value, t_x_max, t_y_max)
 
   else:
     raise ValueError(f"Unknown topology: {topology}")

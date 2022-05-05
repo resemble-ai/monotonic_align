@@ -81,7 +81,7 @@ cdef void backtrack(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef void maximum_path_cmy(
+cpdef void maximum_path_c1alt(
   int[:,:,::1] paths,
   float[:,:,::1] values,
   int[::1] t_xs,
