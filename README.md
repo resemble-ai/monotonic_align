@@ -1,4 +1,4 @@
-The original files is under [Glow-TTS](https://github.com/jaywalnut310/glow-tts/tree/master/monotonic_align). I only made it pip-installable.
+Adapted from the MAS in [Glow-TTS](https://github.com/jaywalnut310/glow-tts/tree/master/monotonic_align). I made it installable and added variants.
 
 # Installation
 ```bash
