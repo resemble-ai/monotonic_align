@@ -87,7 +87,7 @@ def maximum_path(
     maximum_path_c(path, value, t_x_max, t_y_max)
 
   elif topology == "1-step-alt":
-    maximum_path_cmy(path, value, t_x_max, t_y_max)
+    maximum_path_c1alt(path, value, t_x_max, t_y_max)
 
   elif topology == "2-step":
     maximum_path_c2(path, value, t_x_max, t_y_max)
