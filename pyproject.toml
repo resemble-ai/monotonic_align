@@ -3,8 +3,6 @@ requires = [
     "setuptools>=61.0",
     "wheel",
     "cython",
-    "numpy",
-    "torch"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -18,7 +16,11 @@ authors = [
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.7"
-dependencies = []
+dependencies = [
+    "cython",
+    "numpy",
+    "torch"
+]
 
 [tool.setuptools]
 packages = ["monotonic_align"]
