@@ -1,7 +1,33 @@
 [build-system]
 requires = [
+    "setuptools>=61.0",
     "wheel",
-    "setuptools",
+    "cython",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monotonic_align"
+version = "1.2.1"
+description = "Cython-based monotonic alignment search"
+authors = [
+    {name = "resemble-ai", email = "engineering@resemble.ai"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.7"
+dependencies = [
     "cython",
     "numpy",
+    "torch"
 ]
+
+[tool.setuptools]
+packages = ["monotonic_align"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"monotonic_align" = ["*.pyx", "*.pxd", "*.c", "*.cpp"]
+
+[tool.cython]
+language_level = 3

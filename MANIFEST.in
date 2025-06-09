@@ -1,0 +1,2 @@
+include monotonic_align/*.pyx
+include monotonic_align/*.pxd
