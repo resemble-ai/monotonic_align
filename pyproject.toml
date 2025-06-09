@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "monotonic_align"
 version = "1.2.1"
-description = "Cython-based monotonic alignment for speech processing"
+description = "Cython-based monotonic alignment search"
 authors = [
     {name = "resemble-ai", email = "engineering@resemble.ai"}
 ]
